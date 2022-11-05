@@ -1,6 +1,7 @@
 # This example requires the 'members' and 'message_content' privileged intents to function.
 
 import discord
+import json
 from discord.ext import commands
 import random
 
@@ -14,6 +15,8 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='?', description=description, intents=intents)
 
+with open("tokens.json") as f:
+    bot_token = json.load(f)['token']
 
 @bot.event
 async def on_ready():
@@ -76,4 +79,4 @@ async def _bot(ctx):
     await ctx.send('Yes, the bot is cool.')
 
 
-bot.run('MTAzODUyNDEzMjA3NTI0MTU1Mg.GP3ncd._8IY5L1vetS3zxMARq6Ckro_QvTXJDGh87V-Qk')
+bot.run(bot_token)
