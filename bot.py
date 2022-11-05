@@ -117,5 +117,105 @@ async def leagues(ctx, region: str):
     return
 
 
+@bot.command()
+async def games(ctx, region: str):
+  """List out the games in a region"""
+  try:
+    header = {'x-api-key': api_key,'hl': region}
+    
+    games = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getGames',\
+                 headers=header).json()['data']['games']
+
+    game_ID = games
+    await ctx.send(game_ID)
+
+  except Exception as e:
+    await ctx.send(e)
+    return
+
+
+@bot.command()
+async def live(ctx):
+  """Get the full match details of a game either live or after it has occured"""
+  try:
+    header = {'x-api-key': api_key}
+
+    live = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getLive',\
+                 headers=header).json()['data']['schedule']['events']
+
+
+    await ctx.send(live)
+
+  except Exception as e:
+    await ctx.send(e)
+    return
+
+
+@bot.command()
+async def getSchedule(ctx, region='en-US'):
+  """Get the full match details of a game either live or after it has occured"""
+  try:
+    header = {'x-api-key': api_key,'hl': region}
+
+    leagues = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getLeagues',\
+                 headers=header).json()['data']['leagues']
+    leagueId = leagues[0]['id']
+    leagueName = leagues[0]['name']
+    await ctx.send(leagueName)
+    await ctx.send(leagueId)
+
+    
+    header = {'x-api-key': api_key,'hl': region, 'leagueId': leagueId}
+    schedule = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getSchedule',\
+                headers=header).json()
+    
+    with open('schedule.json', 'w') as outfile:
+        outfile.write(json.dumps(schedule, indent=4))
+
+    # await ctx.send(schedule)
+
+  except Exception as e:
+    await ctx.send(e)
+    return
+    
+
+
+@bot.command()
+async def getEventDetails(ctx, region='en-US'):
+  """Get the full match details of a game either live or after it has occured"""
+  try:
+    gameId = '108998961199174712'
+    header = {'x-api-key': api_key, 'hl': region, 'id': gameId}
+    
+    game = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getEventDetails',\
+                          headers=header).json()
+                 
+            
+    await ctx.send(game)
+    
+  except Exception as e:
+    await ctx.send(e)
+    return
+
+
+    
+@bot.command()
+async def leaguesID(ctx, region: str):
+  """List out the league IDS in each region"""
+  try:
+    header = {'x-api-key': api_key, 'hl': region}
+
+    leagues = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getLeagues',\
+                 headers=header).json()['data']['leagues']
+
+    league_ID = [leagues['id'] for id in leagues]
+    await ctx.send(league_ID)
+
+  except Exception as e:
+    await ctx.send(e)
+    return
+
+
+
 
 bot.run(bot_token)
