@@ -3,8 +3,10 @@
 import discord
 import json
 from discord.ext import commands
+import datetime
 import random
 import requests
+import time
 
 description = '''An example bot to showcase the discord.ext.commands extension
 module.
@@ -86,6 +88,16 @@ async def _bot(ctx):
 
 
 #################################################################################################
+
+def get_latest_date():
+    now = datetime.datetime.now(datetime.timezone.utc)
+    now = now - datetime.timedelta(
+        seconds=now.second + 60,
+        microseconds=now.microsecond
+    )
+    now_string = now.isoformat()
+    return str(now_string).replace('+00:00', 'Z')
+
 
 
 @bot.command()
@@ -184,14 +196,72 @@ async def getSchedule(ctx, region='en-US'):
 async def getEventDetails(ctx, region='en-US'):
   """Get the full match details of a game either live or after it has occured"""
   try:
-    gameId = '108998961199174712'
+    gameId = '108998961199830250'
     header = {'x-api-key': api_key, 'hl': region, 'id': gameId}
     
     game = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getEventDetails',\
                           headers=header).json()
                  
+                 
+    with open('game.json', 'w') as outfile:
+       outfile.write(json.dumps(game, indent=4))
             
     await ctx.send(game)
+    
+  except Exception as e:
+    await ctx.send(e)
+    return
+    
+@bot.command()
+async def getMatchUp(ctx, gameId="108998961199895787"):
+  """Get the full match details of a game either live or after it has occured"""
+  try:    
+    metadata = requests.get(f'https://feed.lolesports.com/livestats/v1/window/{gameId}')\
+            .json()['gameMetadata']
+          
+    blue_team = metadata['blueTeamMetadata']['participantMetadata']
+    red_team = metadata['redTeamMetadata']['participantMetadata']
+
+                 
+    await ctx.send(blue_team)
+    await ctx.send(red_team)
+
+    
+  except Exception as e:
+    await ctx.send(e)
+    return
+
+
+@bot.command()
+async def getDetails(ctx):
+  """Get the full match details of a game either live or after it has occured"""
+  try:
+    gameId = "108998961199895787"
+    
+    header = {'startingTime': f'{get_latest_date()}'}
+    
+    session = requests.Session()
+    
+    starting_time = get_latest_date() 
+    frames = json.loads(session.get(
+            f'https://feed.lolesports.com/livestats/v1/details/{gameId}',
+            params={
+                'startingTime': starting_time,
+            }
+        ).text)['frames']
+        
+    #await ctx.send(frames)
+
+    
+    #timestamps = [frame['rfc460Timestamp'] for frame in frames]
+    ids = [participant['participantId'] for participant in frames[-1]['participants']]
+    cs = [participant['creepScore'] for participant in frames[-1]['participants']]
+                 
+ 
+    #await ctx.send(timestamps)
+    await ctx.send(get_latest_date())
+    await ctx.send(participants)
+
     
   except Exception as e:
     await ctx.send(e)
