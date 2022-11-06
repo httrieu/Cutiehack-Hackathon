@@ -8,15 +8,14 @@ import random
 import requests
 import time
 
-description = '''An example bot to showcase the discord.ext.commands extension
-module.
-There are a number of utility commands being showcased here.'''
+description = '''This bot acts as an interactive live database for pro league of legends
+tournaments and matches'''
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='uwu ',
+bot = commands.Bot(command_prefix='LOL ',
                    description=description,
                    intents=intents)
 
@@ -30,65 +29,6 @@ async def on_ready():
   print(f'Logged in as {bot.user} (ID: {bot.user.id})')
   print('------')
 
-
-@bot.command()
-async def add(ctx, left: int, right: int):
-  """Adds two numbers together."""
-  await ctx.send(f"context: {ctx}")
-
-  await ctx.send(left + right)
-
-
-@bot.command()
-async def roll(ctx, dice: str):
-  """Rolls a dice in NdN format."""
-  try:
-    rolls, limit = map(int, dice.split('d'))
-  except Exception:
-    await ctx.send('Format has to be in NdN!')
-    return
-
-  result = ', '.join(str(random.randint(1, limit)) for r in range(rolls))
-  await ctx.send(result)
-
-
-@bot.command(description='For when you wanna settle the score some other way')
-async def choose(ctx, *choices: str):
-  """Chooses between multiple choices."""
-  await ctx.send(random.choice(choices))
-
-
-@bot.command()
-async def repeat(ctx, times: int, content='repeating...'):
-  """Repeats a message multiple times."""
-  for i in range(times):
-    await ctx.send(content)
-
-
-@bot.command()
-async def joined(ctx, member: discord.Member):
-  """Says when a member joined."""
-  await ctx.send(
-    f'{member.name} joined {discord.utils.format_dt(member.joined_at)}')
-
-
-@bot.group()
-async def cool(ctx):
-  """Says if a user is cool.
-    In reality this just checks if a subcommand is being invoked.
-    """
-  if ctx.invoked_subcommand is None:
-    await ctx.send(f'No, {ctx.subcommand_passed} is not cool')
-
-
-@cool.command(name='bot')
-async def _bot(ctx):
-  """Is the bot cool?"""
-  await ctx.send('Yes, the bot is cool.')
-
-
-#################################################################################################
-
 def get_latest_date():
     now = datetime.datetime.now(datetime.timezone.utc)
     now = now - datetime.timedelta(
@@ -98,23 +38,9 @@ def get_latest_date():
     now_string = now.isoformat()
     return str(now_string).replace('+00:00', 'Z')
 
-
-
-@bot.command()
-async def test(ctx, champ: str):
-  """Says what role the champion is usually played"""
-  try:
-    if (champ == "Teemo"):
-      await ctx.send("Top")
-    else:
-      raise ValueError("bad")
-  except Exception:
-    await ctx.send('Has to be league of legends champion name')
-    return
-
 @bot.command()
 async def leagues(ctx, region: str):
-  """Says what role the champion is usually played"""
+  """Lists all leagues in a region"""
   try:
     header = {'x-api-key': api_key,'hl': region}
     
@@ -128,164 +54,155 @@ async def leagues(ctx, region: str):
     await ctx.send(e)
     return
 
-
 @bot.command()
-async def games(ctx, region: str):
-  """List out the games in a region"""
+async def getSchedule(ctx, block, region='en-US'):
+  """Lists all matches in a tourney"""
   try:
     header = {'x-api-key': api_key,'hl': region}
+
+    block = block.capitalize()
     
-    games = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getGames',\
-                 headers=header).json()['data']['games']
-
-    game_ID = games
-    await ctx.send(game_ID)
-
-  except Exception as e:
-    await ctx.send(e)
-    return
-
-
-@bot.command()
-async def live(ctx):
-  """Get the full match details of a game either live or after it has occured"""
-  try:
-    header = {'x-api-key': api_key}
-
-    live = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getLive',\
-                 headers=header).json()['data']['schedule']['events']
-
-
-    await ctx.send(live)
-
-  except Exception as e:
-    await ctx.send(e)
-    return
-
-
-@bot.command()
-async def getSchedule(ctx, region='en-US'):
-  """Get the full match details of a game either live or after it has occured"""
-  try:
-    header = {'x-api-key': api_key,'hl': region}
-
     leagues = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getLeagues',\
                  headers=header).json()['data']['leagues']
     leagueId = leagues[0]['id']
     leagueName = leagues[0]['name']
-    await ctx.send(leagueName)
-    await ctx.send(leagueId)
-
     
+    output = f"Tournament Name: {leagueName}\nTournament ID: {leagueId}\n" + \
+              "-------------------------------------------------"
+    await ctx.send(output)
+
+
     header = {'x-api-key': api_key,'hl': region, 'leagueId': leagueId}
-    schedule = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getSchedule',\
+    schedule = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getSchedule', \
                 headers=header).json()
-    
-    with open('schedule.json', 'w') as outfile:
-        outfile.write(json.dumps(schedule, indent=4))
 
-    # await ctx.send(schedule)
-
-  except Exception as e:
-    await ctx.send(e)
-    return
+    found = False
     
-
-
-@bot.command()
-async def getEventDetails(ctx, region='en-US'):
-  """Get the full match details of a game either live or after it has occured"""
-  try:
-    gameId = '108998961199830250'
-    header = {'x-api-key': api_key, 'hl': region, 'id': gameId}
-    
-    game = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getEventDetails',\
-                          headers=header).json()
-                 
-                 
-    with open('game.json', 'w') as outfile:
-       outfile.write(json.dumps(game, indent=4))
-            
-    await ctx.send(game)
-    
-  except Exception as e:
-    await ctx.send(e)
-    return
-    
-@bot.command()
-async def getMatchUp(ctx, gameId="108998961199895787"):
-  """Get the full match details of a game either live or after it has occured"""
-  try:    
-    metadata = requests.get(f'https://feed.lolesports.com/livestats/v1/window/{gameId}')\
-            .json()['gameMetadata']
+    events = schedule['data']['schedule']['events']
+   
+    for event in events:
+        if event['blockName'] == block:
+          time_ = time.strptime(event['startTime'], '%Y-%m-%dT%H:%M:%SZ')
+          time_ = datetime.datetime(*time_[:6])
+          time_ = time_.strftime("%d-%B")
+          matchID = event['match']['id']
+          team1 = event['match']['teams'][0]['name']
+          team2 = event['match']['teams'][1]['name']
           
-    blue_team = metadata['blueTeamMetadata']['participantMetadata']
-    red_team = metadata['redTeamMetadata']['participantMetadata']
+          output = f"Time of Match: {time_}\nMatch: {team1} vs {team2}\nMatchID: {matchID}" + \
+                    "\n-------------------------------------------------"
+          found = True
+          
+          await ctx.send(output)
 
-                 
-    await ctx.send(blue_team)
-    await ctx.send(red_team)
 
-    
+    if(found == False) :
+      raise Exception("Arguments must be: 'Groups', 'Quarterfinals', 'Semifinals', 'Finals'")
+
   except Exception as e:
     await ctx.send(e)
     return
+    
 
 
 @bot.command()
-async def getDetails(ctx):
-  """Get the full match details of a game either live or after it has occured"""
+async def getEventDetails(ctx, matchId, region='en-US'):
+  """Lists all the games in a match. To find matchID, use getSchedule"""
   try:
-    gameId = "108998961199895787"
+    header = {'x-api-key': api_key, 'hl': region, 'id': str(matchId)}
+
+    event = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getEventDetails',\
+                          headers=header).json()
+                      
+
+    games = event['data']['event']['match']['games']
+    team1 = event['data']['event']['match']['teams'][0]['name']
+    team2 = event['data']['event']['match']['teams'][1]['name']
+    result1 = event['data']['event']['match']['teams'][0]['result']['gameWins']
+    result2 = event['data']['event']['match']['teams'][1]['result']['gameWins']    
+
+    await ctx.send("Event Results: ")
+        
+    await ctx.send(str(team1) + ": " + str(result1) + " vs. " + str(team2) + ": " + str(result2))
+
+
+    for game in games :
+      cnt = game['number']
+      id_ = game['id']
+      
+      await ctx.send("Game " + str(cnt))
+      await ctx.send("Game ID: " + str(id_))
+
+  except Exception as e:
+    await ctx.send(e)
+    return
     
+@bot.command()
+async def getDetails(ctx, gameId):
+  """"Get the full details of a game. To find gameID, use getEventDetails"""
+  try:
     header = {'startingTime': f'{get_latest_date()}'}
     
     session = requests.Session()
     
     starting_time = get_latest_date() 
     frames = json.loads(session.get(
-            f'https://feed.lolesports.com/livestats/v1/details/{gameId}',
+            f'https://feed.lolesports.com/livestats/v1/details/{str(gameId)}',
             params={
                 'startingTime': starting_time,
             }
         ).text)['frames']
         
-    #await ctx.send(frames)
-
+        
+    gameWindow = json.loads(session.get(
+            f'https://feed.lolesports.com/livestats/v1/window/{str(gameId)}',
+            params={
+                'startingTime': starting_time,
+            }
+        ).text)
+        
+    gameMetadata = gameWindow['gameMetadata'] 
+    gameState = gameWindow['frames'][-1]
     
-    #timestamps = [frame['rfc460Timestamp'] for frame in frames]
-    ids = [participant['participantId'] for participant in frames[-1]['participants']]
+        
+    participants = gameMetadata['blueTeamMetadata']['participantMetadata'] + \
+                   gameMetadata['redTeamMetadata']['participantMetadata']
+    
+    participantDict = {}
+    for participant in participants:
+        participantDict[participant['participantId']] = {'summonerName': participant['summonerName'],\
+                        'champion': participant['championId'], 'role': participant['role']}
+            
+            
+    
+    players = [participantDict[participant['participantId']] for participant in frames[-1]['participants']]
     cs = [participant['creepScore'] for participant in frames[-1]['participants']]
                  
- 
-    #await ctx.send(timestamps)
-    await ctx.send(get_latest_date())
-    await ctx.send(participants)
+    
+    team1 = participantDict[1]['summonerName'].split(' ')[0]
+    team2 = participantDict[10]['summonerName'].split(' ')[0]
+
+    out = f"{team1} vs {team2}\n"
+    out += f"State: {gameState['gameState'].replace('_', ' ').capitalize()}\nTotal Kills: {gameState['blueTeam']['totalKills']} to {gameState['redTeam']['totalKills']}"
+    out += f"\nTotal Gold: {gameState['blueTeam']['totalGold']} to {gameState['redTeam']['totalGold']}"
+    
+    out += "\n-------------------------------------------------"
+    await ctx.send(out)
+
+    for idx, player in enumerate(participantDict.keys()):
+        player_metadata = participantDict[player]
+        player_stats = frames[-1]['participants'][idx]
+        out = f"Player: {player_metadata['summonerName']},\nRole: {player_metadata['role']}\nChampion: {player_metadata['champion']}\n"
+        out += f"K/D/A: {player_stats['kills']}/{player_stats['deaths']}/{player_stats['assists']}"
+        out += f"\nCS: {player_stats['creepScore']}\nGold: {player_stats['totalGoldEarned']}"
+        out += '\n-------------------------------------------------'
+        await ctx.send(out)
+       
 
     
   except Exception as e:
     await ctx.send(e)
     return
-
-
-    
-@bot.command()
-async def leaguesID(ctx, region: str):
-  """List out the league IDS in each region"""
-  try:
-    header = {'x-api-key': api_key, 'hl': region}
-
-    leagues = requests.get('https://prod-relapi.ewp.gg/persisted/gw/getLeagues',\
-                 headers=header).json()['data']['leagues']
-
-    league_ID = [leagues['id'] for id in leagues]
-    await ctx.send(league_ID)
-
-  except Exception as e:
-    await ctx.send(e)
-    return
-
-
 
 
 bot.run(bot_token)
